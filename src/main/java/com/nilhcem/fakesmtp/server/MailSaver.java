@@ -4,13 +4,18 @@ import com.nilhcem.fakesmtp.core.ArgsHandler;
 import com.nilhcem.fakesmtp.core.Configuration;
 import com.nilhcem.fakesmtp.core.I18n;
 import com.nilhcem.fakesmtp.model.EmailModel;
+import com.nilhcem.fakesmtp.model.FilesModel;
 import com.nilhcem.fakesmtp.model.UIModel;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
@@ -21,8 +26,16 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Observable;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.activation.DataHandler;
+import javax.mail.BodyPart;
+import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.Session;
+import javax.mail.internet.MimeMessage;
 
 /**
  * Saves emails and notifies components so they can refresh their views with new data.
@@ -76,6 +89,15 @@ public final class MailSaver extends Observable {
 		synchronized (getLock()) {
 			String filePath = saveEmailToFile(mailContent);
 
+			if(UIModel.INSTANCE.isSaveHtml()) {
+				try {
+					String htmlFilePath = saveHtmlToFile(new File(filePath));
+					model.setHtmlFilePath(htmlFilePath);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+
 			model.setReceivedDate(new Date());
 			model.setFilePath(filePath);
 
@@ -88,20 +110,25 @@ public final class MailSaver extends Observable {
 	 * Deletes all received emails from file system.
 	 */
 	public void deleteEmails() {
-		Map<Integer, String> mails = UIModel.INSTANCE.getListMailsMap();
+		Map<Integer, FilesModel> mails = UIModel.INSTANCE.getListMailsMap();
 		if (ArgsHandler.INSTANCE.memoryModeEnabled()) {
 			return;
 		}
-		for (String value : mails.values()) {
-			File file = new File(value);
-			if (file.exists()) {
-				try {
-					if (!file.delete()) {
-						LOGGER.error("Impossible to delete file {}", value);
-					}
-				} catch (SecurityException e) {
-					LOGGER.error("", e);
+		for (FilesModel value : mails.values()) {
+			deleteFile(value.getEmlFilePath());
+			deleteFile(value.getHtmlFilePath());
+		}
+	}
+
+	private void deleteFile(String filename){
+		File file = new File(filename);
+		if (file.exists()) {
+			try {
+				if (!file.delete()) {
+					LOGGER.error("Impossible to delete file {}", filename);
 				}
+			} catch (SecurityException e) {
+				LOGGER.error("", e);
 			}
 		}
 	}
@@ -206,5 +233,69 @@ public final class MailSaver extends Observable {
 			LOGGER.error("", e);
 		}
 		return "";
+	}
+
+
+	private String saveHtmlToFile(File emlFile) throws Exception{
+		Properties props = System.getProperties();
+		props.put("mail.host", "smtp.dummydomain.com");
+		props.put("mail.transport.protocol", "smtp");
+
+		Session mailSession = Session.getDefaultInstance(props, null);
+		InputStream source = new FileInputStream(emlFile);
+		MimeMessage message = new MimeMessage(mailSession, source);
+
+
+		System.out.println("Subject : " + message.getSubject());
+		System.out.println("From : " + message.getFrom()[0]);
+		System.out.println("--------------");
+		//System.out.println("Body : " +  message.getContent());
+		String msgContent = getMessageContent(message.getContent());
+		System.out.println("Body : \n" +  msgContent);
+
+
+		String htmlFilePath = String.format("%s%s%s.html", UIModel.INSTANCE.getSavePath(), File.separator, FilenameUtils.getBaseName(emlFile.getAbsolutePath()));
+		try {
+			FileUtils.writeStringToFile(new File(htmlFilePath), msgContent);
+		} catch (IOException e) {
+			// If we can't save file, we display the error in the SMTP logs
+			Logger smtpLogger = LoggerFactory.getLogger(org.subethamail.smtp.server.Session.class);
+			smtpLogger.error("Error: Can't save email: {}", e.getMessage());
+		}
+		return htmlFilePath;
+	}
+
+	private String getMessageContent(Object msgContent) throws MessagingException, IOException {
+		String content = "";
+
+     /* Check if content is pure text/html or in parts */
+		if (msgContent instanceof Multipart) {
+
+			Multipart multipart = (Multipart) msgContent;
+
+			System.out.println("BodyPart MultiPartCount: "+multipart.getCount());
+
+			for (int j = 0; j < multipart.getCount(); j++) {
+
+				BodyPart bodyPart = multipart.getBodyPart(j);
+
+				String disposition = bodyPart.getDisposition();
+
+				if (disposition != null && (disposition.equalsIgnoreCase("ATTACHMENT"))) {
+					System.out.println("Mail have some attachment");
+
+					DataHandler handler = bodyPart.getDataHandler();
+					System.out.println("file name : " + handler.getName());
+				}
+				else {
+					//content = getText(bodyPart);  // the changed code
+					content = bodyPart.getContent().toString();
+				}
+			}
+		}
+		else {
+			content = msgContent.toString();
+		}
+		return content;
 	}
 }

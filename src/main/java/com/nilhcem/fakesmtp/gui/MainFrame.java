@@ -100,6 +100,9 @@ public final class MainFrame {
 			UIModel.INSTANCE.setSavePath(emailsDir);
 		}
 
+		panel.getChkSaveHtml().setSelected(UIModel.INSTANCE.isSaveHtml());
+		panel.getChkOpenHtml().setSelected(UIModel.INSTANCE.isOpenHtml());
+
 		mainFrame.setVisible(true);
 	}
 
