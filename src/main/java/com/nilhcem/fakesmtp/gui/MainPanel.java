@@ -10,13 +10,18 @@ import com.nilhcem.fakesmtp.gui.info.StartServerButton;
 import com.nilhcem.fakesmtp.gui.tab.LastMailPane;
 import com.nilhcem.fakesmtp.gui.tab.LogsPane;
 import com.nilhcem.fakesmtp.gui.tab.MailsListPane;
+import com.nilhcem.fakesmtp.model.UIModel;
 import com.nilhcem.fakesmtp.server.MailSaver;
 import com.nilhcem.fakesmtp.server.SMTPServerHandler;
 import net.miginfocom.swing.MigLayout;
 
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
+
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.util.Observable;
 
 /**
@@ -51,6 +56,12 @@ public final class MainPanel {
 	// Save incoming messages to
 	private final JLabel saveMessages = new JLabel(i18n.get("mainpanel.save.messages"));
 	private final SaveMsgField saveMsgTextField = new SaveMsgField();
+
+	// HTML
+	private final JLabel saveHtml = new JLabel("Save HTML");
+	private final JCheckBox chkSaveHtml = new JCheckBox();
+	private final JLabel openHtml = new JLabel("Open HTML");
+	private final JCheckBox chkOpenHtml = new JCheckBox();
 
 	// Tab pane
 	private final JTabbedPane tabbedPane = new JTabbedPane();
@@ -128,6 +139,20 @@ public final class MainPanel {
 		clearAll.addObserver(mailsListPane);
 		clearAll.addObserver(logsPane);
 		clearAll.addObserver(lastMailPane);
+
+		chkSaveHtml.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				UIModel.INSTANCE.setSaveHtml(e.getStateChange() == ItemEvent.SELECTED);
+			}
+		});
+
+		chkOpenHtml.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				UIModel.INSTANCE.setOpenHtml(e.getStateChange() == ItemEvent.SELECTED);
+			}
+		});
 	}
 
 	/**
@@ -146,6 +171,12 @@ public final class MainPanel {
 		// Nb received
 		mainPanel.add(receivedLabel);
 		mainPanel.add(nbReceivedLabel.get(), "span");
+
+		// HTML
+		mainPanel.add(saveHtml);
+		mainPanel.add(chkSaveHtml, "span, w 230!");
+		mainPanel.add(openHtml);
+		mainPanel.add(chkOpenHtml, "span, w 230!");
 
 		// Tab pane
 		tabbedPane.add(mailsListPane.get(), i18n.get("mainpanel.tab.mailslist"));
@@ -187,6 +218,8 @@ public final class MainPanel {
 		portLabel.setLabelFor(portText.get());
 		saveMessages.setLabelFor(saveMsgTextField.get());
 		receivedLabel.setLabelFor(nbReceivedLabel.get());
+		saveHtml.setLabelFor(chkSaveHtml);
+		openHtml.setLabelFor(chkOpenHtml);
 	}
 
 	/**
@@ -205,5 +238,13 @@ public final class MainPanel {
 	 */
 	public SaveMsgField getSaveMsgTextField() {
 		return saveMsgTextField;
+	}
+
+	public JCheckBox getChkSaveHtml() {
+		return chkSaveHtml;
+	}
+
+	public JCheckBox getChkOpenHtml() {
+		return chkOpenHtml;
 	}
 }

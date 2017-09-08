@@ -65,6 +65,14 @@
 		    <version>1.4</version>
 		</dependency>
 
+		<!-- https://mvnrepository.com/artifact/javax.mail/mail -->
+		<!-- To parse the message and extract the html -->
+		<dependency>
+			<groupId>javax.mail</groupId>
+			<artifactId>mail</artifactId>
+			<version>1.4.7</version>
+		</dependency>
+
 		<!-- Integration test -->
 		<dependency>
 			<groupId>junit</groupId>

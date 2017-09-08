@@ -1,17 +1,17 @@
 package com.nilhcem.fakesmtp.model;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.nilhcem.fakesmtp.core.I18n;
 import com.nilhcem.fakesmtp.core.exception.BindPortException;
 import com.nilhcem.fakesmtp.core.exception.InvalidHostException;
 import com.nilhcem.fakesmtp.core.exception.InvalidPortException;
 import com.nilhcem.fakesmtp.core.exception.OutOfRangePortException;
 import com.nilhcem.fakesmtp.server.SMTPServerHandler;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * UI presentation model of the application.
@@ -32,8 +32,10 @@ public enum UIModel {
 	private String hostStr;
 	private int nbMessageReceived = 0;
 	private String savePath = I18n.INSTANCE.get("emails.default.dir");
-	private final Map<Integer, String> listMailsMap = new HashMap<Integer, String>();
+	private final Map<Integer, FilesModel> listMailsMap = new HashMap<Integer, FilesModel>();
 	private List<String> relayDomains;
+	private boolean saveHtml = true;
+	private boolean openHtml = true;
 
 	UIModel() {
 	}
@@ -104,7 +106,7 @@ public enum UIModel {
 		this.savePath = savePath;
 	}
 
-	public Map<Integer, String> getListMailsMap() {
+	public Map<Integer, FilesModel> getListMailsMap() {
 		return listMailsMap;
 	}
 
@@ -114,5 +116,21 @@ public enum UIModel {
 
 	public void setRelayDomains(List<String> relayDomains) {
 		this.relayDomains = relayDomains;
+	}
+
+	public boolean isSaveHtml() {
+		return saveHtml;
+	}
+
+	public void setSaveHtml(final boolean saveHtml) {
+		this.saveHtml = saveHtml;
+	}
+
+	public boolean isOpenHtml() {
+		return openHtml;
+	}
+
+	public void setOpenHtml(final boolean openHtml) {
+		this.openHtml = openHtml;
 	}
 }

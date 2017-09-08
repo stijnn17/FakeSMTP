@@ -5,8 +5,10 @@ import com.nilhcem.fakesmtp.core.Configuration;
 import com.nilhcem.fakesmtp.core.I18n;
 import com.nilhcem.fakesmtp.gui.info.ClearAllButton;
 import com.nilhcem.fakesmtp.model.EmailModel;
+import com.nilhcem.fakesmtp.model.FilesModel;
 import com.nilhcem.fakesmtp.model.UIModel;
 import com.nilhcem.fakesmtp.server.MailSaver;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +17,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+
 import java.awt.Desktop;
 import java.awt.Rectangle;
 import java.awt.event.ComponentAdapter;
@@ -45,7 +48,7 @@ public final class MailsListPane implements Observer {
 	private final I18n i18n = I18n.INSTANCE;
 	private final JScrollPane mailsListPane = new JScrollPane();
 	private final SimpleDateFormat dateFormat = new SimpleDateFormat("hh:mm:ss a");
-	private final int[] widths = new int[] {85, 140, 140}; // widths of columns in tab
+	private final int[] widths = new int[] { 85, 140, 140 }; // widths of columns in tab
 
 	/**
 	 * Table with non-editable cells.
@@ -112,31 +115,49 @@ public final class MailsListPane implements Observer {
 					if (e.getClickCount() == 2 && (emlViewer != null || desktop != null)) {
 						File file = null;
 						JTable target = (JTable) e.getSource();
-						String fileName = UIModel.INSTANCE.getListMailsMap().get(target.getSelectedRow());
+						FilesModel fileName = UIModel.INSTANCE.getListMailsMap().get(target.getSelectedRow());
 						if (fileName == null) {
 							LOGGER.error("Can't find any associated email for row #{}", target.getSelectedRow());
 						} else {
-							file = new File(fileName);
-						}
-
-						if (file != null && file.exists()) {
-							try {
-								if (emlViewer != null) {
-									Runtime.getRuntime().exec(emlViewer + " " + file.getAbsolutePath());
+							if (UIModel.INSTANCE.isOpenHtml()) {
+								if (fileName.getHtmlFilePath() != null) {
+									file = new File(fileName.getHtmlFilePath());
 								} else {
-									desktop.open(file);
+									displayError(i18n.get("mailslist.err.open"));
+								}
+							} else {
+								file = new File(fileName.getEmlFilePath());
+							}
+						}
+						if (UIModel.INSTANCE.isOpenHtml()) {
+							try {
+								if (file != null && file.exists()) {
+									Desktop.getDesktop().browse(file.toURI());
 								}
 							} catch (IOException ioe) {
 								LOGGER.error("", ioe);
 								displayError(String.format(i18n.get("mailslist.err.open"), file.getAbsolutePath()));
 							}
 						} else {
-							displayError(String.format(i18n.get("mailslist.err.find"), file.getAbsolutePath()));
+							if (file != null && file.exists()) {
+								try {
+									if (emlViewer != null) {
+										Runtime.getRuntime().exec(emlViewer + " " + file.getAbsolutePath());
+									} else {
+										desktop.open(file);
+									}
+								} catch (IOException ioe) {
+									LOGGER.error("", ioe);
+									displayError(String.format(i18n.get("mailslist.err.open"), file.getAbsolutePath()));
+								}
+							} else {
+								displayError(String.format(i18n.get("mailslist.err.find"), file.getAbsolutePath()));
+							}
 						}
 					}
 				}
 			});
-        }
+		}
 
 		// Auto scroll tab to bottom when a new element is inserted
 		table.addComponentListener(new ComponentAdapter() {
@@ -182,17 +203,19 @@ public final class MailsListPane implements Observer {
 	 * Updates the content of the table.
 	 * <p>
 	 * This method will be called by an observable element.
-     * </p>
+	 * </p>
 	 * <ul>
-	 *   <li>If the observable is a {@link MailSaver} object, a new row will be added
-	 *   to the table, and the {@link UIModel} will be updated;</li>
-	 *   <li>If the observable is a {@link ClearAllButton} object, all the cells
-	 *   of the table will be removed, and the {@link UIModel} will be updated.</li>
+	 * <li>If the observable is a {@link MailSaver} object, a new row will be added
+	 * to the table, and the {@link UIModel} will be updated;</li>
+	 * <li>If the observable is a {@link ClearAllButton} object, all the cells
+	 * of the table will be removed, and the {@link UIModel} will be updated.</li>
 	 * </ul>
 	 *
-	 * @param o the observable element which will notify this class.
-	 * @param arg optional parameters (an {@code EmailModel} object, for the case of
-	 * a {@code MailSaver} observable) containing all the information about the email.
+	 * @param o
+	 * 		the observable element which will notify this class.
+	 * @param arg
+	 * 		optional parameters (an {@code EmailModel} object, for the case of
+	 * 		a {@code MailSaver} observable) containing all the information about the email.
 	 */
 	@Override
 	public void update(Observable o, Object arg) {
@@ -206,8 +229,13 @@ public final class MailsListPane implements Observer {
 				subject = email.getSubject();
 			}
 
-			model.addRow(new Object[] {dateFormat.format(email.getReceivedDate()), email.getFrom(), email.getTo(), subject});
-			UIModel.INSTANCE.getListMailsMap().put(nbElements++, email.getFilePath());
+			model.addRow(new Object[] { dateFormat.format(email.getReceivedDate()), email.getFrom(), email.getTo(), subject });
+
+			FilesModel filesModel = new FilesModel();
+			filesModel.setEmlFilePath(email.getFilePath());
+			filesModel.setHtmlFilePath(email.getHtmlFilePath());
+
+			UIModel.INSTANCE.getListMailsMap().put(nbElements++, filesModel);
 		} else if (o instanceof ClearAllButton) {
 			// Delete information from the map
 			UIModel.INSTANCE.getListMailsMap().clear();
@@ -226,11 +254,10 @@ public final class MailsListPane implements Observer {
 	/**
 	 * Displays a message dialog containing the error specified in parameter.
 	 *
-	 * @param error a String representing an error message to display.
+	 * @param error
+	 * 		a String representing an error message to display.
 	 */
 	private void displayError(String error) {
-		JOptionPane.showMessageDialog(mailsListPane.getParent(), error,
-			String.format(i18n.get("mailslist.err.title"), Configuration.INSTANCE.get("application.name")),
-			JOptionPane.ERROR_MESSAGE);
+		JOptionPane.showMessageDialog(mailsListPane.getParent(), error, String.format(i18n.get("mailslist.err.title"), Configuration.INSTANCE.get("application.name")), JOptionPane.ERROR_MESSAGE);
 	}
 }

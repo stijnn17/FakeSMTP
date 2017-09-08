@@ -20,6 +20,7 @@ public final class EmailModel {
 	private String subject;
 	private String emailStr;
 	private String filePath;
+	private String htmlFilePath;
 
 	public Date getReceivedDate() {
 		return receivedDate;
@@ -61,5 +62,13 @@ public final class EmailModel {
 	}
 	public void setFilePath(String filePath) {
 		this.filePath = filePath;
+	}
+
+	public String getHtmlFilePath() {
+		return htmlFilePath;
+	}
+
+	public void setHtmlFilePath(final String htmlFilePath) {
+		this.htmlFilePath = htmlFilePath;
 	}
 }
