@@ -4,6 +4,7 @@ import com.nilhcem.fakesmtp.core.ArgsHandler;
 import com.nilhcem.fakesmtp.core.I18n;
 import com.nilhcem.fakesmtp.gui.info.ClearAllButton;
 import com.nilhcem.fakesmtp.gui.info.NbReceivedLabel;
+import com.nilhcem.fakesmtp.gui.info.OpenFolderButton;
 import com.nilhcem.fakesmtp.gui.info.PortTextField;
 import com.nilhcem.fakesmtp.gui.info.SaveMsgField;
 import com.nilhcem.fakesmtp.gui.info.StartServerButton;
@@ -43,6 +44,7 @@ public final class MainPanel {
 	private final JLabel portLabel = new JLabel(i18n.get("mainpanel.listening.port"));
 	private final PortTextField portText = new PortTextField();
 	private final StartServerButton startServerBtn = new StartServerButton();
+	private final OpenFolderButton openFolderButton = new OpenFolderButton();
 
 	// Messages received
 	private final JLabel receivedLabel = new JLabel(i18n.get("mainpanel.messages.received"));
@@ -137,11 +139,12 @@ public final class MainPanel {
 		// Port / Start server
 		mainPanel.add(portLabel);
 		mainPanel.add(portText.get(), "w 60!");
-		mainPanel.add(startServerBtn.get(), "span, w 165!");
+		mainPanel.add(startServerBtn.get(), "span, w 100!");
 
 		// Save messages to...
 		mainPanel.add(saveMessages);
-		mainPanel.add(saveMsgTextField.get(), "span, w 230!");
+		mainPanel.add(saveMsgTextField.get(), "w 180!");
+		mainPanel.add(openFolderButton.get(), "span, w 100!");
 
 		// Nb received
 		mainPanel.add(receivedLabel);
